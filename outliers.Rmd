@@ -1,0 +1,542 @@
+---
+title: "Outliers for Wang et al. (2021) - Reading & Writing"
+date: "3/1/2021"
+output:
+  html_document:
+    css: style.css
+    code_folding: hide
+---
+
+```{r setup, include = FALSE, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+source('./scripts/load.R')
+source('./scripts/utilities.R')
+source('scripts/logits.R') 
+require(tidyverse)
+require(knitr)
+require(Hmisc)
+```
+
+# Experiment summary
+Participants were shown a reference category (e.g., "in the kitchen") prior to seeing a target character (e.g., "券", meaning "ticket"), then prompted as to whether the target character was a member of that category (see details about each trial below for timing of the sequence). For a given category, a response was provided by each participant for each in a set of four characters: (i) the character whose overall meaning is related to the reference category (the "overall" condition), (ii) the character that possesses a radical that is related in meaning to the reference category but whose meaning otherwise is not (the "semantic" condition), (iii) the character that is entirely unrelated to the reference category (the "unrelated" condition), and (iv) the radical of interest itself taken from ii (the "radical" condition). Several categories were repeated to accomodate suitable sets of targets.
+
+## Trial description
+First, a fixation cross was shown at the center of the screen for 300 msec, which was followed by the reference category for half a second. Following the appearance of the category, the target character was shown for 200 msec, which was then followed by the mask (300 msec). The mask was included after piloting indicated that the task was likely too easy to yield reliable differences in accuracy or RT. Participants were then prompted to respond (indefinitely) as to whether the target character belonged to the reference category ("n"/RED for "no", and "z"/GREEN for "yes"). After a response was provided, a new trial began after 200 msec. Participants were allowed to take a break in between trials when one was desired, though none did.
+
+## Stimulus selection
+Attempts were made to control for character complexity and the frequency of the target as much as possible, though this was of course difficult given the constraints of the language and the nature of the task; characters in the "semantic" condition are difficult to find, and constructing categories that were well suited to elicit the relationship with the misleading semantic radical in those critical trials are also elusive. Note that efforts to match were not applied to the radicals themselves because radicals are by nature visually more simple and most often more frequently occurring. Items in the "radical" condition were included so that there were approximately equal numbers of "yes" and "no" trials. Below is an example of a set of four targets and the reference category to which they are related.
+
+```{r   warning=FALSE, message=FALSE}
+d %>% 
+  filter(category_id == 'rc1') %>% 
+  group_by(target_id) %>% 
+  summarise(`reference category` = first(category_gloss),
+            `target` = first(target),
+            `condition` = first(target_type),
+            `target gloss` = first(target_gloss)) %>% 
+  select(-c(target_id)) %>% 
+  kable()
+
+```
+
+## Participants
+Participants were ```r length(unique(d$subnum))``` native speakers of Mandarin contacted through advertising in and around the university. Participants recruited through the department participation-for-credit program were provided course credit for their participation, and all others were paid. Participants delivered observations for ```r length(unique(d$category_id))*4``` category-target pairs. The experimental task took approximately 10 minutes, including instructions, sample, and dummy trials. Based on our composite of reading skill collected via self-report items after the experiment, the distribution of skill across all participants is displayed below.  
+  
+```{r   warning=FALSE, message=FALSE}
+d %>% 
+  group_by(subnum) %>% 
+  summarise(reading_skill = first(reading_composite)) %>% 
+  ggplot(aes(reading_skill)) +
+  geom_histogram(binwidth = .5, color = 'black') +
+  labs(x = 'Reading skill (composite, Z)', y = 'Count')
+
+```
+
+
+## Other details about the procedure
+Category-target pairs were arranged in blocks such that catrgories were never shown with more than one target with which it was associated within blocks. Pairs were fully random within blocks, and the blocks themselves were provided to participants in a random order. In addition to responding to the task, participants answered a set of questions about their language background and reading skill (self report on reading behaviors and attitudes about reading). Five additional minutes were spent on the participant questionnaire. 
+
+
+## Quick look at DVs
+### Accuracy
+The distribution of accuracy grouped by participant is shown below with a dashed black line indicating the mean accuracy across all participants. You can see that there are a couple outliers on accuracy. They will be discussed later when we deal with outliers.
+
+```{r warning=FALSE, message=FALSE}
+d %>% 
+  group_by(subnum) %>% 
+  summarise(mean_accuracy = mean(accuracy)) %>% 
+  ggplot(aes(mean_accuracy)) +
+  geom_histogram(color = 'black') +
+  geom_vline(xintercept = mean(d$accuracy), linetype = 'dashed', color = 'salmon') +
+  labs(x = 'Accuracy (as proportion)', 
+       title = 'Mean accuracy by participant',
+       subtitle = '(dashed line = mean)') +
+  theme(plot.title = element_text(size = 18, hjust = .5),
+        plot.subtitle = element_text(size = 16, hjust = .5))
+
+```
+
+### RT
+The distribution of RT has a very long tail given that participants were given unlimited time to respond during each trial. The histogram below shows this distribution across all observations with a dashed line for the mean on RT, a blue line for mean + 1SD, and a red line for mean + 3SD.
+
+```{r   warning=FALSE, message=FALSE}
+d %>% 
+  ggplot(aes(rt)) +
+  geom_histogram(binwidth = 200, color = 'purple4', fill = 'pink') +
+  geom_vline(xintercept = mean(d$rt), color = 'black', linetype = 'dashed')  +
+  geom_vline(xintercept = mean(d$rt)+sd(d$rt),
+             color = 'blue') +
+  geom_vline(xintercept = mean(d$rt)+(3*sd(d$rt)), 
+             color = 'red') +
+  theme(panel.background = element_blank(),
+        axis.line = element_line(color = 'black'))
+
+```
+
+
+# Outliers
+## By participant
+First we will look at participant performance to determine if we have anyone that was performing in a way that should cause us concern.
+
+### Mean accuracy by participant
+Below we see accuracy scores collapsed across all trials with points representing individual participants (and rank ordered by the average accuracy). Two outliers show up: participants 3 and 46. Participant 3 averaged ```r round(summarise(filter(d, subnum == 3), accuracy = mean(accuracy)), digits = 2)*100```% accuracy trials and participant 46 averaged ```r round(summarise(filter(d, subnum == 46), accuracy = mean(accuracy)), digits = 2)*100```% accuracy, with the next lowest performer averaging ```r round(summarise(filter(d, subnum == 31), accuracy = mean(accuracy)), digits = 2)*100```% accurate. The vertical line indicates the mean.  
+```{r   warning=FALSE, message=FALSE}
+
+d %>%
+  group_by(subnum) %>%
+  summarise(mean_accuracy = mean(accuracy)) %>%
+  ggplot(aes(mean_accuracy, reorder(subnum, desc(mean_accuracy)))) +
+  geom_vline(xintercept = mean(d$accuracy), linetype = 'dashed') +
+    geom_label(aes(label = subnum)) +
+    labs(x = "Mean accuracy", 
+         title = "Mean accuracy by participant (ordered)", 
+         subtitle = "Points are shown as subject numbers") +
+    theme(plot.title = element_text(hjust = .5, size = 17),
+          plot.subtitle = element_text(hjust = .5, size = 15),
+          axis.title.y = element_blank(), 
+          axis.text.y = element_blank(), 
+          axis.ticks.y = element_blank())
+
+```
+
+### Accuracy for participants 3 and 46
+Participant 3 displayed far less than average accuracy on all trials, with particularly bad accuracy on trials in the misleading "semantic" condition - which is what you might expect given that this condition is the hardest. So, it seems warranted to exclude her from analyses. Participant 46 is more interesting. His pattern for accuracy indicates that they had difficulty responding to trials where the answer should be "yes".
+
+```{r   warning=FALSE, message=FALSE}
+# designate the outlier in an object for later filtering
+outlier_participants_by_accuracy = c(3, 46)
+
+d %>%
+  filter(subnum == 3 | subnum == 46) %>% 
+  group_by(target_type) %>%
+  ggplot(aes(target_type, accuracy, fill = target_type)) +
+  geom_bar(stat = 'summary') +
+  geom_hline(yintercept = mean(d$accuracy), linetype = 'dashed') +
+  geom_hline(yintercept = .5, linetype = 'dotted', color = 'red') +
+  labs(x = "Condition", 
+       y = "Accuracy",
+       title = "Accuracy for participants 3 and 46",
+       subtitle = 'black line = mean accuracy  |  panels are participants') +
+  facet_grid(~subnum) +
+  theme(plot.title = element_text(hjust = .5, size = 17),
+        plot.subtitle = element_text(hjust = .5, size = 14),
+        legend.position = 'none') +
+  scale_y_continuous(breaks=seq(0,1,.1)) +
+  ylim(c(0, 1))
+```
+
+
+
+### Participant RT
+There is quite a bit of variability for average response times by participant, with a discontinuity in average RT of over .1 seconds in the 1000-1100 msec range.
+```{r   warning=FALSE, message=FALSE}
+
+d %>%
+  group_by(subnum) %>%
+  summarise(mean_rt = mean(rt),
+            sd_rt = sd(rt)) %>%
+  ggplot(aes(reorder(subnum, desc(mean_rt)), mean_rt)) +
+  # geom_label(aes(label = subnum)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = mean_rt - sd_rt, ymax = mean_rt + sd_rt)) +
+  geom_rect(ymin = 1000, ymax = 1100, xmin = 0, xmax = Inf, 
+            linetype = 'dotted', color = 'pink', 
+            fill = 'gray85', alpha = .011) +
+  labs(x = 'Participant', y = "Mean RT (bars are SDs)", 
+       title = "Mean RT by participant (ordered)", 
+       subtitle = "Points are participant means") +
+  coord_flip() +
+  theme(plot.title = element_text(hjust = .5, size = 17),
+        plot.subtitle = element_text(hjust = .5, size = 15),
+        axis.text.y = element_text(size = 4))
+
+```
+
+If we disaggregate the by participant RTs by condition, you see a little bit of separation in the "semantic" condition, which is what you would expect to see given the task; trials from this condition may well be causing participants to dwell on their responses more than in other conditions. The participants who seem to stand out are 48, 28 and 32.
+
+
+```{r   warning=FALSE, message=FALSE}
+d %>%
+  group_by(subnum, target_type) %>%
+  summarise(mean_rt = mean(rt)) %>%
+  ggplot(aes(mean_rt, reorder(subnum, desc(mean_rt)))) +
+  geom_label(aes(label = subnum), size = 1.7) +
+  labs(x = "Mean RT", 
+       title = "Mean RT by participant (ordered)", 
+       subtitle = "Points are shown as subject numbers \n (panels = condition)") +
+  facet_grid(rows = vars(target_type)) +
+  theme(plot.title = element_text(hjust = .5, size = 17),
+        plot.subtitle = element_text(hjust = .5, size = 15),
+        axis.title.y = element_blank(), 
+        axis.text.y = element_blank(), 
+        axis.ticks.y = element_blank())
+```
+
+There are a handful of outlier observations for these participants that are exacerbating the problem, seeming to be trials where the RT is well beyond 3 seconds.
+
+```{r   warning=FALSE, message=FALSE}
+d %>% 
+  filter(subnum == 48 | subnum == 28 | subnum == 32) %>% 
+  filter(target_type == 'semantic') %>% 
+  ggplot(aes(rt, color = factor(subnum))) +
+    geom_histogram(binwidth = 100) +
+    geom_vline(xintercept = mean(d$rt), linetype = 'dashed') +
+    geom_vline(xintercept = mean(d$rt)+3*sd(d$rt), color = 'red') +
+    labs(x = "RT", 
+       title = "RTs for misleading trials for Ps 28 and 32",
+       subtitle = "dotted line = mean RT \n red line = 3SD above mean RT",
+       color = "Participant") +
+  theme(plot.title = element_text(hjust = .5, size = 14),
+        plot.subtitle = element_text(hjust = .5, size = 12),
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(), 
+        axis.ticks.y = element_blank())
+
+```
+
+Those observations are shown below. Note that the mean on RT is ```r round(mean(d$rt), digits = 2)```, and the SD on RT is ```r round(sd(d$rt), digits = 2)```. Deeming this handful of observations as outliers and excluding them from analyses would be accomplished by excluding any observation that is 3 SDs above the mean on RT (```r round(mean(d$rt)+(3*sd(d$rt)), digits = 2)``` msec) for these participants. This is a somewhat more strict boundary than necessary; this would include a few observations on the inside of the apparent discontinuity above. But this is a sensible value. generally. The table below shows data from these trials for these participants - note that they all are from the semantic condition, and mostly from participant 32.
+
+```{r   warning=FALSE, message=FALSE}
+d %>% 
+  filter(subnum == 48 | subnum == 28 | subnum == 32) %>% 
+  filter(target_type == 'semantic') %>% 
+  filter(rt > mean(d$rt)+(3*sd(d$rt))) %>% 
+  select(Subnum = subnum, Condition = target_type, rt, Accuracy = accuracy) %>% 
+  arrange(desc(rt)) %>% 
+  kable()
+
+```
+
+
+## Outliers by item (ie, "targets")
+### Accuracy by item
+There appears to be a discontinuity for accuracy by item, with separation for targets below about 60% accuracy. These points are colored as blue in the graph below.
+
+```{r   warning=FALSE, message=FALSE}
+cutoff_item_accuracy = .63
+
+discontinuity_lower_bound = d %>% 
+  filter(target_id == 93) %>% 
+  summarise(mean(accuracy, na.rm = TRUE)) %>% 
+  as.numeric()
+
+discontinuity_upper_bound = d %>% 
+  filter(target_id == 20) %>% 
+  summarise(mean(accuracy)) %>% 
+  as.numeric()
+
+
+
+d %>%
+  group_by(target_id) %>%
+  summarise(mean_accuracy = mean(accuracy)) %>%
+  mutate(below_cutoff = ifelse(mean_accuracy < cutoff_item_accuracy, TRUE, FALSE)) %>% 
+  ggplot(aes(mean_accuracy, 
+             reorder(target_id, desc(mean_accuracy)), 
+             fill = below_cutoff)) +
+    geom_label(aes(label = target_id), 
+              size = 2, 
+              position = position_jitter(width=.02, height=.02)) +
+    geom_rect(xmin = discontinuity_lower_bound, 
+              xmax = discontinuity_upper_bound, ymin = 0, ymax = Inf, 
+            linetype = 'dotted', color = 'pink', 
+            fill = 'gray85', alpha = .011) +
+    labs(x = "Mean accuracy", 
+         title = "Mean accuracy by target", 
+         subtitle = "Points = target id, blue = outliers",
+         fill = "Cutoff < .63") +
+    theme(plot.title = element_text(hjust = .5, size = 17),
+          plot.subtitle = element_text(hjust = .5, size = 15),
+          axis.title.y = element_blank(), 
+          axis.text.y = element_blank(), 
+          axis.ticks.y = element_blank())
+
+```
+
+Here are the targets that fall below this threshold. These items only come from the semantic and radical conditions (items for which the answer should be "yes").
+
+```{r   warning=FALSE, message=FALSE}
+d %>% 
+  group_by(target_id) %>%
+  summarise(mean_accuracy = mean(accuracy)) %>%
+  filter(mean_accuracy < .63) %>% 
+  select(outlier_targets = target_id) -> outlier_targets_by_accuracy
+
+outlier_targets_by_accuracy = as.numeric(outlier_targets_by_accuracy$outlier_targets)
+
+d %>%
+  group_by(target_id) %>%
+  summarise(`Target` = first(target),
+            Condition = first(target_type),
+            `Mean accuracy` = mean(accuracy),
+            `Target gloss` = first(target_gloss)) %>%
+  filter(`Mean accuracy` <= cutoff_item_accuracy) %>% 
+  arrange(desc(`Mean accuracy`)) %>% 
+  mutate(`Mean accuracy` = round(`Mean accuracy`, digits = 2)) %>% 
+  select(-target_id) %>% 
+  kable()
+
+```
+
+Removing observations for these targets would mean eliminating ```r nrow(filter(d, target_id %in% outlier_targets_by_accuracy))``` observations (```r (round(nrow(filter(d, target_id %in% outlier_targets_by_accuracy))/nrow(d), digits = 2))*100```% of all observations).
+
+
+
+### RT by item
+The distribution of RTs for all trials is shown below. There is at least one discontinuity worth noting at the far right side of the distribution, past target id `88`. These outlier points are shown in blue.
+
+```{r   warning=FALSE, message=FALSE}
+
+d %>%
+  group_by(target_id) %>%
+  summarise(rt_mean = mean(rt)) %>% 
+  filter(target_id == 19) %>% 
+  select(rt_mean) %>% 
+  as.numeric() -> cutoff_item_rt
+
+
+
+d %>%
+  group_by(target_id) %>%
+  summarise(rt_mean = mean(rt),
+            rt_sd = sd(rt)) %>%
+  mutate(above_cutoff = ifelse(rt_mean > cutoff_item_rt, TRUE, FALSE)) %>% 
+  ggplot(aes(y = rt_mean, 
+             x = reorder(target_id, desc(rt_mean)))) +
+    #geom_label(aes(label = target_id), 
+     #         size = 1.8,
+      #        position = position_jitter(width=.02, height=.02)) +
+    geom_point(aes(color = above_cutoff)) +
+    geom_errorbar(aes(ymin = rt_mean - rt_sd, ymax = rt_mean + rt_sd)) +
+    coord_flip() +
+    labs(x = 'Target ID', y = "Mean RT (bars are SDs)", 
+         title = "Mean RT by target", 
+         subtitle = paste("Points = target ID"),
+         color = paste("Outliers >", round(cutoff_item_rt, digits = 2), sep = '')) +
+    theme(plot.title = element_text(hjust = .5, size = 17),
+          plot.subtitle = element_text(hjust = .5, size = 15),
+          axis.text.y = element_text(size = 2))
+
+
+
+
+
+```
+
+Here is some information about these targets. The aren't coming from a single condition.
+
+```{r   warning=FALSE, message=FALSE}
+d %>%
+  group_by(target_id, target_type) %>%
+  summarise(`Target` = first(target),
+            Condition = first(target_type),
+            `RT (mean)` = mean(rt),
+            `RT (SD)` = sd(rt),
+            `Target gloss` = first(target_gloss)) %>%
+  filter(`RT (mean)` > cutoff_item_rt) %>% 
+  arrange(desc(`RT (mean)`)) %>% 
+  rename(ID = target_id) %>% 
+  kable()
+```
+
+
+As we saw previously for RTs across all observations, the distribution has a very long tail. If maintain the 3SD above the mean cutoff for outliers on RT (as we did earlier for participants 48, 28 and 32), we would be excluding ```r nrow(filter(d, rt > mean(d$rt)+(3*sd(d$rt))))``` observations (or ```r round(nrow(filter(d, rt > mean(d$rt)+(3*sd(d$rt))))/nrow(d)*100, digits = 2)```% of all data. This won't have a serious impact in our results other than making the estimates more precise). Below is a distribution showing this cutoff with a vertical line for the mean, and another for 3SDs above for reference. 
+
+
+```{r   warning=FALSE, message=FALSE}
+d %>%
+  ggplot(aes(rt)) +
+  geom_histogram(binwidth = 100, color = 'purple4', fill = 'pink') +
+  geom_vline(xintercept = mean(d$rt), color = 'black', linetype = 'dashed')  +
+  geom_vline(xintercept = mean(d$rt)+(3*sd(d$rt)), 
+              color = 'red') +
+  theme()
+```
+
+Doing this would eliminate a similar quantity of observations from each of the four conditions (actually with the fewest being taken from the "semantic" condition) - see below.
+
+```{r   warning=FALSE, message=FALSE}
+d %>% 
+  filter(rt > mean(d$rt)+(3*sd(d$rt))) %>% 
+  group_by(target_type) %>% 
+  summarise(`# excluded obs` = n()) %>% 
+  mutate(Condition = toupper(target_type)) %>% 
+  select(Condition, `# excluded obs`) %>% 
+  kable()
+```
+
+Applying this 3SD cutoff, we will exclude ```r nrow(filter(d, rt > mean(d$rt)+(3*sd(d$rt))))``` observations (or ```r round(nrow(filter(d, rt > mean(d$rt)+(3*sd(d$rt))))/nrow(d)*100, digits = 2)```% of all data). This means, approximately, we will keep observations that were ```r round((mean(d$rt)+(3*sd(d$rt)))/1000, digits = 2)``` seconds or less.
+
+### Really fast RTs
+There are some very fast RTs, so fast that they likely aren't indicative of performance on the task that we were going for in the experiment. In past experiments we've removed trials that were faster than 400 milliseconds. The distribution in our data doesn't doesn't make a clear case for this cutoff. I think 300 msec is more sensible given the way that the distribution flattens out at that part of the tail. Removing all data below 400 msec would mean removing ```r nrow(filter(d, rt < 400))``` observations, and setting 300 msec as a cutoff would mean removing ```r nrow(filter(d, rt < 300))``` observations. The 300 msec cutoff is shown below. We will go with 300 for now.
+
+```{r}
+d %>% 
+  arrange(-desc(rt)) %>% 
+  filter(rt < 500) %>% 
+  ggplot(aes(rt)) +
+  geom_histogram(binwidth = 2, color = 'black', fill = 'pink') +
+  geom_vline(xintercept = 300, color = 'red')
+
+```
+
+These items don't seem to be associated with particular conditions, which is what we would expect - though there are a few more in the semantic condition.
+
+```{r warning=FALSE, message=FALSE}
+d %>% 
+  filter(rt < 300) %>% 
+  group_by(target_type) %>% 
+  summarise(n = n()) %>% 
+  rename(condition = target_type) %>% 
+  mutate(condition = toupper(condition)) %>% 
+  kable()
+```
+
+
+```{r warning=FALSE, message=FALSE, include=FALSE}
+# finalize cutoffs for outliers:
+high_cutoff_rt = mean(d$rt)+(3*sd(d$rt))
+low_cutoff_rt = 300
+rm(cutoff_item_rt, cutoff_item_accuracy)
+```
+
+
+## Summary of outliers
+###Accuracy 
+Based on the accuracy data by participant, two participants stand out: participant 3 and 46. These individuals achieved less than 55% correct on all trials, with particularly bad performance on trials in the misleading ("semantic") condition. We'll exclude observations from these participants in analyses below, but can compare analyses with them later on if needed.
+
+Additionally there were ```r length(outlier_targets_by_accuracy)``` targets that showed lower accuracy than the rest of the items. We will exclude observations for these targets as well as those from participant #3.
+  
+### RT
+For RT by participant, a handful items stood out when looking at means, all of them coming from participants 48, 28 and 32 (most from this person). These observations fell in the far tail of the distrubution of RT values for these participants and appeared to contribute to the skew in distribution for RT when aggregated at the participant level. Additionally, all of these trials were in the "semantic" condition where the character possesses a radical that is related to the reference category, but where the overall meaning of the character is not related to the meaning of that reference category. These participants aren't excluded individually, but dealt with based on the cutoff for RT values.
+
+The 3SD above the mean cutoff for RT is sensible for all trials, and allows us to remove trials across all four conditions approximately evenly, despite the outliers when looking at specific participants with skewed means. 3SD seems to be a reasonable and unbiased cutoff. Likewise we will remove the ```r nrow(filter(d, rt < low_cutoff_rt))``` observations that exhibited really quick RTs too.
+
+This leads to removing ```r nrow(filter(d, subnum %in% outlier_participants_by_accuracy | target_id %in% outlier_targets_by_accuracy | rt > high_cutoff_rt | rt < low_cutoff_rt))``` rows of data, which totals ```r round(nrow(filter(d, subnum %in% outlier_participants_by_accuracy | target_id %in% outlier_targets_by_accuracy | rt > high_cutoff_rt | rt < low_cutoff_rt))/nrow(d), digits = 2)*100```% of all observations from the experiment.
+
+```{r include=FALSE, warning=FALSE, message=FALSE}
+# let's save the outlier assignments in a variable
+d = d %>% 
+  mutate(outlier = ifelse(subnum %in% outlier_participants_by_accuracy | target_id %in% outlier_targets_by_accuracy | rt > high_cutoff_rt | rt < low_cutoff_rt, TRUE, FALSE))
+
+```
+
+
+# Descriptive accounts of DVs given cutoffs
+## Accuracy
+If we apply the cutoffs outlined above, the following are descriptive accounts of accuracy and RT. Error bars are plotted as standard error of the mean. Below you see mean accuracy across the four conditions, with points as participants.
+
+Remember that the semantic and unrelated conditions are most relevant for final analyses (these are conditions in which we expect a "no" response). In the "overall" condition the participant should be answering that the target is in fact related to the reference category (ie, "knife" is a member of the set of objects that you'd find "in the kitchen"). So, incorrect trials are ones where the participant is responding "no" when the answer should be "yes". Conversely, in the "semantic" and "unrelated" conditions, the answer is always "no"; and incorrect response tells us that the participant indicated that the target is a member of the category (but it in fact is not). The fourth "radical" condition where only the radical was included as a target was included so there would be approximately even numbers of "yes" and "no" responses given that such characters, like those in the "overall" condition should always have a "yes" response.
+
+
+```{r   warning=FALSE, message=FALSE}
+COLORS = c("overall" = "salmon", "semantic" = "red3", "unrelated" = "goldenrod1", "radical" = "grey23")
+positions = c("radical", "overall", "semantic", "unrelated")
+# generate data with points (one per participant per condition)
+d %>% 
+  filter(outlier == FALSE) %>% 
+  group_by(target_type, subnum) %>%
+  summarise(mean_accuracy = mean(accuracy)) -> d_plot
+
+
+# generate summary data to plot means and bars:
+d_plot %>%
+  group_by(target_type) %>%
+  summarise(mean_accuracy = round(mean_se(mean_accuracy)[1], digits = 3),
+            se_min = NA,
+            se_max = NA) -> d_plot_bars
+
+# the made for function mean_se is having trouble generating the se_min and se_max within piped structures, so compute them directly (even though this code sucks):
+# radical condition
+# overall condition:
+# se_min:
+d_plot_bars$se_min[which(d_plot_bars$target_type == "radical")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "radical")])[2]
+# se_max:
+d_plot_bars$se_max[which(d_plot_bars$target_type == "radical")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "radical")])[3]
+
+# overall condition:
+# se_min:
+d_plot_bars$se_min[which(d_plot_bars$target_type == "overall")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "overall")])[2]
+# se_max:
+d_plot_bars$se_max[which(d_plot_bars$target_type == "overall")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "overall")])[3]
+# semantic condition:
+# se_min:
+d_plot_bars$se_min[which(d_plot_bars$target_type == "semantic")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "semantic")])[2]
+# se_max:
+d_plot_bars$se_max[which(d_plot_bars$target_type == "semantic")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "semantic")])[3]
+# unrelated condition:
+# se_min:
+d_plot_bars$se_min[which(d_plot_bars$target_type == "unrelated")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "unrelated")])[2]
+# se_max:
+d_plot_bars$se_max[which(d_plot_bars$target_type == "unrelated")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "unrelated")])[3]
+
+
+
+# the plot for accuracy:
+#specify the order of the bars:
+ggplot(d_plot_bars, aes(x = target_type, y = mean_accuracy)) +
+  geom_bar(data = d_plot_bars, mapping = aes(fill = target_type, x=target_type, y=mean_accuracy), stat = "identity", width = .8) +
+  geom_text(aes(label = round(mean_accuracy, digits = 2)), vjust = 6, size = 11) +
+  geom_point(data = d_plot, aes(y = mean_accuracy, x = target_type), colour='darkgrey', position = position_jitter(w = .1), size = 1) +
+  geom_errorbar(data = d_plot_bars, aes(y = mean_accuracy, x = target_type, ymin = se_min, ymax = se_max), stat="identity", width=0.3) +
+  labs(y = 'Accuracy (as proportion)', x = 'Condition') +
+  guides(fill = FALSE) +
+  scale_fill_manual(values = COLORS) +
+  scale_x_discrete(limits = positions) +
+  theme(legend.position = 'none')
+```
+
+
+## RT
+Below are RT data by condition. You certainly see a slowed rate of response in the semantic condition (red), suggestive that there is interference for participants on those trials relative to both other conditions.
+  
+```{r warning=FALSE, message=FALSE}
+# we will exclude the "radical" condition for the visuals to make it cleaner
+d %>%
+  filter(outlier == FALSE) %>% 
+  filter(accuracy == 1) -> d_plot
+
+d %>%
+  filter(outlier == FALSE) %>% 
+  filter(accuracy == 1) %>%
+  group_by(target_type) %>%
+  summarise(mean_rt = round(mean_se(rt)[1], digits = 0),
+            se_min = mean_se(rt)[2],
+            se_max = mean_se(rt)[3]) -> d_plot_bars
+
+ggplot(d_plot_bars, aes(x = target_type, y = mean_rt)) +
+  geom_bar(data = d_plot_bars, mapping = aes(fill = target_type, x=target_type, y=mean_rt), stat = "identity", width = .8) +
+  geom_text(aes(label = mean_rt), vjust = 3.5, size = 9) +
+  geom_point(data = d_plot, aes(y = rt, x = target_type), colour='darkgrey', position = position_jitter(w = .1), size = .1) +
+  geom_errorbar(data = d_plot_bars, aes(y = mean_rt, x = target_type, ymin = se_min, ymax = se_max), stat="identity", width=0.3) +
+  labs(y = 'RT', x = 'Condition') +
+  ylim(0, 2000) +
+  scale_fill_manual(values = COLORS) +
+  scale_x_discrete(limits = positions) +
+  theme(legend.position = 'none')
+
+```
+
+
+
+

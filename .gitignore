@@ -1,0 +1,5 @@
+.DS_Store
+scripts/clean.R
+*.html
+*.Rproj
+
