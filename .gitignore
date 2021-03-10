@@ -3,3 +3,4 @@ scripts/clean.R
 *.html
 *.Rproj
 
+.Rproj.user

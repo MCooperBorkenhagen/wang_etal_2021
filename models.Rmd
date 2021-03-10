@@ -36,7 +36,7 @@ d = d %>%
   mutate(outlier = ifelse(subnum %in% outlier_participants_by_accuracy | target_id %in% outlier_targets_by_accuracy | rt > high_cutoff_rt | rt < low_cutoff_rt, TRUE, FALSE))
 ```
 
-Based on these outliers ```nrow(filter(d, outlier == T))``` trials were excluded for analysis, which amounts to ```r nrow(filter(d, outlier == T))/nrow(d)```% of the data.
+Based on these outliers ```r nrow(filter(d, outlier == T))``` trials were excluded for analysis, which amounts to ```r nrow(filter(d, outlier == T))/nrow(d)```% of the data.
 
 ## Accuracy
 ### Descriptive statistics for accuracy
