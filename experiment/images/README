@@ -1,0 +1,11 @@
+SRC2 final JPG files
+Non-stimuli image files needed for experiment running
+
+This folder contains the supporting image files for SRC2 
+these are all the JPGs needed to run the experiment that 
+are not stimuli (either reference categories or targets). 
+These include the task instruction images (prac.jpg and 
+test.jpg) and the practice trial feedback images 
+(pracFeedback_.jpg files). Additionally there is a JPG 
+(end.jpg) which is an exit screen.
+
