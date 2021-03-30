@@ -64,6 +64,7 @@ model_accuracy = d %>%
 
 summary(model_accuracy)
 
+# probabiliity difference between conditions:
 predictor_probability(model_accuracy, 'condition', return_unit_difference = T)
 ```
 
@@ -106,6 +107,22 @@ predictions %>%
   theme(legend.position = 'none')
 
 ```
+
+### Statistical model for accuracy run with outliers included
+
+```{r}
+
+model_accuracy_ = d %>% 
+  filter(target_type %in% focal_conditions) %>% 
+  mutate(condition = case_when(target_type == 'semantic' ~ 1, TRUE ~ 0)) %>% 
+  glmer(accuracy ~ condition + (1 | subnum) + (1 | target_id), family = 'binomial', data = ., control=glmerControl(optCtrl=list(boundary.tol = 1e-5)))
+
+summary(model_accuracy_)
+
+
+```
+
+
 
 ## RT
 ### Descriptive statistics for RT

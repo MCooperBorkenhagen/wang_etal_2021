@@ -1,3 +1,5 @@
 tidyverse
 Hmisc
 knitr
+lme4
+AICcmodavg
