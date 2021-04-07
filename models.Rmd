@@ -22,7 +22,7 @@ There were two participants that stood out as outliers based on their accuracy a
 
 Trials where the response times were 3SDs above the mean on RT were removed (`81` trials total for these outliers, distributed approximately evenly across the four conditions). Extremely fast trials were removed as well - those that occurred faster than `300 ms` (resulting in `50` observations being removed).
 
-Trials associated with four targets were removed due to the clear discontinuity present in their average accuracy (targets `19`, `16`, `94`, and `93`). These targets were all from the semantic and radical conditions (`204` observations in total for these four targets).
+Trials associated with four targets were removed due to the clear discontinuity present in their average accuracy (targets `19`, `16`, `94`, and `93`). These targets were all from the incongruous and radical conditions (`204` observations in total for these four targets).
 
 More detailed information about the process of designating outliers in the supplementary information provided.
 
@@ -54,18 +54,32 @@ d %>%
 ### Statistical model for accuracy
 
 ```{r accuracy}
-focal_conditions = c('unrelated', 'semantic')
+focal_conditions = c('unrelated', 'incongruous')
 
 model_accuracy = d %>% 
   filter(outlier == F) %>% 
   filter(target_type %in% focal_conditions) %>% 
-  mutate(condition = case_when(target_type == 'semantic' ~ 1, TRUE ~ 0)) %>% 
+  mutate(condition = case_when(target_type == 'incongruous' ~ 1, TRUE ~ 0)) %>% 
   glmer(accuracy  ~ condition + (1 | subnum) + (1 | target_id), family = 'binomial', data = .)
 
 summary(model_accuracy)
 
 # probabiliity difference between conditions:
 predictor_probability(model_accuracy, 'condition', return_unit_difference = T)
+```
+
+
+```{r lm_model_for_accuracy}
+
+d %>% 
+  filter(target_type %in% focal_conditions) %>% 
+  filter(outlier == F) %>% 
+  group_by(subnum, target_type) %>% 
+  summarise(accuracy = mean(accuracy)) %>% 
+  lm(accuracy ~ target_type, data = .) %>% 
+  summary()
+
+
 ```
 
 ### Plot of statistical model for accuracy
@@ -76,7 +90,7 @@ x = expand.grid(condition = c(0, 1))
 y = predictSE(model_accuracy, newdata = x, se.fit = TRUE, type = "response")
 predictions = cbind(x, y) %>% 
   mutate(condition = case_when(condition == 0 ~ 'Unrelated',
-                               TRUE ~ 'Semantic')) %>% 
+                               TRUE ~ 'Incongruous')) %>% 
   rename(Condition = condition,
          Probability = fit,
          SE = se.fit)
@@ -87,11 +101,11 @@ plot_data = d %>%
   group_by(subnum, target_type) %>% 
   summarise(Probability = mean(accuracy)) %>% 
   ungroup() %>% 
-  mutate(target_type = recode(target_type, 'semantic' = 'Semantic', 'unrelated' = 'Unrelated')) %>% 
+  mutate(target_type = recode(target_type, 'incongruous' = 'Incongruous', 'unrelated' = 'Unrelated')) %>% 
   rename(Condition = target_type,
          Participant = subnum)
 
-COLORS = c('Semantic' = 'firebrick', 'Unrelated' = 'goldenrod')
+COLORS = c('Incongruous' = 'firebrick', 'Unrelated' = 'goldenrod')
 
 predictions %>% 
   ggplot(aes(Condition, Probability, fill = Condition)) +
@@ -112,12 +126,14 @@ predictions %>%
 
 ```{r}
 
-model_accuracy_ = d %>% 
+model_accuracy_outliers_included = d %>% 
   filter(target_type %in% focal_conditions) %>% 
-  mutate(condition = case_when(target_type == 'semantic' ~ 1, TRUE ~ 0)) %>% 
-  glmer(accuracy ~ condition + (1 | subnum) + (1 | target_id), family = 'binomial', data = ., control=glmerControl(optCtrl=list(boundary.tol = 1e-5)))
+  mutate(condition = case_when(target_type == 'incongruous' ~ 1, TRUE ~ 0)) %>% 
+  glmer(accuracy ~ condition + (1 | subnum) + (1 | target_id), family = 'binomial', data = ., control=glmerControl(optCtrl=list(boundary.tol = 1e-7)))
 
-summary(model_accuracy_)
+ss = getME(model_accuracy_outliers_included, c('theta', 'fixef'))
+model_accuracy_outliers_included2 = update(model_accuracy_outliers_included, start = ss)
+summary(model_accuracy_outliers_included2)
 
 
 ```
@@ -148,7 +164,7 @@ model_rt = d %>%
   filter(outlier == F) %>% 
   filter(accuracy == 1) %>% 
   filter(target_type %in% focal_conditions) %>% 
-  mutate(condition = case_when(target_type == 'semantic' ~ 1, TRUE ~ 0)) %>% 
+  mutate(condition = case_when(target_type == 'incongruous' ~ 1, TRUE ~ 0)) %>% 
   lmer(rt  ~ condition + (1 | subnum) + (1 | target_id), data = .)
 
 summary(model_rt)
@@ -164,7 +180,7 @@ x = expand.grid(condition = c(0, 1))
 y = predictSE(model_rt, newdata = x, se.fit = TRUE, type = "response")
 predictions = cbind(x, y) %>% 
   mutate(condition = case_when(condition == 0 ~ 'Unrelated',
-                               TRUE ~ 'Semantic'),
+                               TRUE ~ 'Incongruous'),
          RT_ = round(fit, digits = 2)) %>% 
   rename(Condition = condition,
          RT = fit,
@@ -174,10 +190,10 @@ plot_data = d %>%
   filter(outlier == FALSE) %>% 
   filter(accuracy == 1) %>% 
   filter(target_type %in% focal_conditions) %>% 
-  mutate(target_type = recode(target_type, 'semantic' = 'Semantic', 'unrelated' = 'Unrelated')) %>% 
+  mutate(target_type = recode(target_type, 'incongruous' = 'Incongruous', 'unrelated' = 'Unrelated')) %>% 
   select(Condition = target_type, RT = rt)
 
-COLORS = c('Semantic' = 'firebrick', 'Unrelated' = 'goldenrod')
+COLORS = c('Incongruous' = 'firebrick', 'Unrelated' = 'goldenrod')
 
 predictions %>% 
   ggplot(aes(Condition, RT, fill = Condition)) +
@@ -195,7 +211,17 @@ predictions %>%
 
 ```
 
+### Statistical model for RT run with outliers included
 
+```{r rt_outliers_included}
+model_rt_including_outliers = d %>% 
+  filter(accuracy == 1) %>% 
+  filter(target_type %in% focal_conditions) %>% 
+  mutate(condition = case_when(target_type == 'incongruous' ~ 1, TRUE ~ 0)) %>% 
+  lmer(rt  ~ condition + (1 | subnum) + (1 | target_id), data = .)
 
-
+summary(model_rt_including_outliers)
+anova_rt = car::Anova(model_rt_including_outliers, type=3, test = "F")
+anova_rt
+```
 

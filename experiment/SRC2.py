@@ -218,7 +218,10 @@ def end():
     core.quit()
 
 
-################ main ###############
+
+################
+## MAIN CALLS ##
+################
 (randomizedTrials, dataFile)=setup()
 
 practiceTrials()

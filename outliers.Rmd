@@ -18,13 +18,13 @@ require(Hmisc)
 ```
 
 # Experiment summary
-Participants were shown a reference category (e.g., "in the kitchen") prior to seeing a target character (e.g., "券", meaning "ticket"), then prompted as to whether the target character was a member of that category (see details about each trial below for timing of the sequence). For a given category, a response was provided by each participant for each in a set of four characters: (i) the character whose overall meaning is related to the reference category (the "overall" condition), (ii) the character that possesses a radical that is related in meaning to the reference category but whose meaning otherwise is not (the "semantic" condition), (iii) the character that is entirely unrelated to the reference category (the "unrelated" condition), and (iv) the radical of interest itself taken from ii (the "radical" condition). Several categories were repeated to accomodate suitable sets of targets.
+Participants were shown a reference category (e.g., "in the kitchen") prior to seeing a target character (e.g., "券", meaning "ticket"), then prompted as to whether the target character was a member of that category (see details about each trial below for timing of the sequence). For a given category, a response was provided by each participant for each in a set of four characters: (i) the character whose overall meaning is related to the reference category (the "overall related" condition), (ii) the character that possesses a radical that is related in meaning to the reference category but whose meaning otherwise is not (the "incongruous" condition), (iii) the character that is entirely unrelated to the reference category (the "unrelated" condition), and (iv) the radical of interest itself taken from ii (the "radical only" condition). Several categories were repeated to accomodate suitable sets of targets.
 
 ## Trial description
 First, the reference category was shown at the center of the screen for 1.5 seconds, followed by a fixation cross for 200 ms. Following the appearance of the category, the target character was shown for 200 msec. Participants were then prompted to respond (indefinitely) as to whether the target character belonged to the reference category ("n"/RED for "no", and "z"/GREEN for "yes"). After a response was provided, a new trial began (after 100 msec). Participants were allowed to take a break in between trials when one was desired, though none did.
 
 ## Stimulus selection
-Attempts were made to control for character complexity and the frequency of the target as much as possible, though this was of course difficult given the constraints of the language and the nature of the task; characters in the "semantic" condition are difficult to find, and constructing categories that were well suited to elicit the relationship with the misleading semantic radical in those critical trials are also elusive. Note that efforts to match were not applied to the radicals themselves because radicals are by nature visually more simple and most often more frequently occurring. Items in the "radical" condition were included so that there were approximately equal numbers of "yes" and "no" trials. Below is an example of a set of four targets and the reference category to which they are related.
+Attempts were made to control for character complexity and the frequency of the target as much as possible, though this was of course difficult given the constraints of the language and the nature of the task; characters in the "incongruous" condition are difficult to find, and constructing categories that were well suited to elicit the relationship with the misleading incongruous radical in those critical trials are also elusive. Note that efforts to match were not applied to the radicals themselves because radicals are by nature visually more simple and most often more frequently occurring. Items in the "radical only" condition were included so that there were approximately equal numbers of "yes" and "no" trials. Below is an example of a set of four targets and the reference category to which they are related.
 
 ```{r   warning=FALSE, message=FALSE}
 d %>% 
@@ -120,7 +120,7 @@ d %>%
 ```
 
 ### Accuracy for participants 3 and 46
-Participant 3 displayed far less than average accuracy on all trials, with particularly bad accuracy on trials in the misleading "semantic" condition - which is what you might expect given that this condition is the hardest. So, it seems warranted to exclude her from analyses. Participant 46 is more interesting. His pattern for accuracy indicates that they had difficulty responding to trials where the answer should be "yes".
+Participant 3 displayed far less than average accuracy on all trials, with particularly bad accuracy on trials in the misleading "incongruous" condition - which is what you might expect given that this condition is the hardest. So, it seems warranted to exclude her from analyses. Participant 46 is more interesting. His pattern for accuracy indicates that they had difficulty responding to trials where the answer should be "yes".
 
 ```{r   warning=FALSE, message=FALSE}
 # designate the outlier in an object for later filtering
@@ -172,7 +172,7 @@ d %>%
 
 ```
 
-If we disaggregate the by participant RTs by condition, you see a little bit of separation in the "semantic" condition, which is what you would expect to see given the task; trials from this condition may well be causing participants to dwell on their responses more than in other conditions. The participants who seem to stand out are 48, 28 and 32.
+If we disaggregate the by participant RTs by condition, you see a little bit of separation in the "incongruous" condition, which is what you would expect to see given the task; trials from this condition may well be causing participants to dwell on their responses more than in other conditions. The participants who seem to stand out are 48, 28 and 32.
 
 
 ```{r   warning=FALSE, message=FALSE}
@@ -197,7 +197,7 @@ There are a handful of outlier observations for these participants that are exac
 ```{r   warning=FALSE, message=FALSE}
 d %>% 
   filter(subnum == 48 | subnum == 28 | subnum == 32) %>% 
-  filter(target_type == 'semantic') %>% 
+  filter(target_type == 'incongruous') %>% 
   ggplot(aes(rt, color = factor(subnum))) +
     geom_histogram(binwidth = 100) +
     geom_vline(xintercept = mean(d$rt), linetype = 'dashed') +
@@ -214,12 +214,12 @@ d %>%
 
 ```
 
-Those observations are shown below. Note that the mean on RT is ```r round(mean(d$rt), digits = 2)```, and the SD on RT is ```r round(sd(d$rt), digits = 2)```. Deeming this handful of observations as outliers and excluding them from analyses would be accomplished by excluding any observation that is 3 SDs above the mean on RT (```r round(mean(d$rt)+(3*sd(d$rt)), digits = 2)``` msec) for these participants. This is a somewhat more strict boundary than necessary; this would include a few observations on the inside of the apparent discontinuity above. But this is a sensible value. generally. The table below shows data from these trials for these participants - note that they all are from the semantic condition, and mostly from participant 32.
+Those observations are shown below. Note that the mean on RT is ```r round(mean(d$rt), digits = 2)```, and the SD on RT is ```r round(sd(d$rt), digits = 2)```. Deeming this handful of observations as outliers and excluding them from analyses would be accomplished by excluding any observation that is 3 SDs above the mean on RT (```r round(mean(d$rt)+(3*sd(d$rt)), digits = 2)``` msec) for these participants. This is a somewhat more strict boundary than necessary; this would include a few observations on the inside of the apparent discontinuity above. But this is a sensible value. generally. The table below shows data from these trials for these participants - note that they all are from the incongruous condition, and mostly from participant 32.
 
 ```{r   warning=FALSE, message=FALSE}
 d %>% 
   filter(subnum == 48 | subnum == 28 | subnum == 32) %>% 
-  filter(target_type == 'semantic') %>% 
+  filter(target_type == 'incongruous') %>% 
   filter(rt > mean(d$rt)+(3*sd(d$rt))) %>% 
   select(Subnum = subnum, Condition = target_type, rt, Accuracy = accuracy) %>% 
   arrange(desc(rt)) %>% 
@@ -273,7 +273,7 @@ d %>%
 
 ```
 
-Here are the targets that fall below this threshold. These items only come from the semantic and radical conditions (items for which the answer should be "yes").
+Here are the targets that fall below this threshold. These items only come from the incongruous and radical conditions (items for which the answer should be "yes").
 
 ```{r   warning=FALSE, message=FALSE}
 d %>% 
@@ -356,6 +356,8 @@ d %>%
   filter(`RT (mean)` > cutoff_item_rt) %>% 
   arrange(desc(`RT (mean)`)) %>% 
   rename(ID = target_id) %>% 
+  ungroup() %>% 
+  select(-target_type) %>% 
   kable()
 ```
 
@@ -373,14 +375,14 @@ d %>%
   theme()
 ```
 
-Doing this would eliminate a similar quantity of observations from each of the four conditions (actually with the fewest being taken from the "semantic" condition) - see below.
+Doing this would eliminate a similar quantity of observations from each of the four conditions (actually with the fewest being taken from the "incongruous" condition) - see below.
 
 ```{r   warning=FALSE, message=FALSE}
 d %>% 
   filter(rt > mean(d$rt)+(3*sd(d$rt))) %>% 
   group_by(target_type) %>% 
   summarise(`# excluded obs` = n()) %>% 
-  mutate(Condition = toupper(target_type)) %>% 
+  rename(Condition = target_type) %>% 
   select(Condition, `# excluded obs`) %>% 
   kable()
 ```
@@ -400,7 +402,7 @@ d %>%
 
 ```
 
-These items don't seem to be associated with particular conditions, which is what we would expect - though there are a few more in the semantic condition.
+These items don't seem to be associated with particular conditions, which is what we would expect - though there are a few more in the incongruous condition.
 
 ```{r warning=FALSE, message=FALSE}
 d %>% 
@@ -408,7 +410,6 @@ d %>%
   group_by(target_type) %>% 
   summarise(n = n()) %>% 
   rename(condition = target_type) %>% 
-  mutate(condition = toupper(condition)) %>% 
   kable()
 ```
 
@@ -423,12 +424,12 @@ rm(cutoff_item_rt, cutoff_item_accuracy)
 
 ## Summary of outliers
 ###Accuracy 
-Based on the accuracy data by participant, two participants stand out: participant 3 and 46. These individuals achieved less than 55% correct on all trials, with particularly bad performance on trials in the misleading ("semantic") condition. We'll exclude observations from these participants in analyses below, but can compare analyses with them later on if needed.
+Based on the accuracy data by participant, two participants stand out: participant 3 and 46. These individuals achieved less than 55% correct on all trials, with particularly bad performance on trials in the misleading ("incongruous") condition. We'll exclude observations from these participants in analyses below, but can compare analyses with them later on if needed.
 
 Additionally there were ```r length(outlier_targets_by_accuracy)``` targets that showed lower accuracy than the rest of the items. We will exclude observations for these targets as well as those from participant #3.
   
 ### RT
-For RT by participant, a handful items stood out when looking at means, all of them coming from participants 48, 28 and 32 (most from this person). These observations fell in the far tail of the distrubution of RT values for these participants and appeared to contribute to the skew in distribution for RT when aggregated at the participant level. Additionally, all of these trials were in the "semantic" condition where the character possesses a radical that is related to the reference category, but where the overall meaning of the character is not related to the meaning of that reference category. These participants aren't excluded individually, but dealt with based on the cutoff for RT values.
+For RT by participant, a handful items stood out when looking at means, all of them coming from participants 48, 28 and 32 (most from this person). These observations fell in the far tail of the distrubution of RT values for these participants and appeared to contribute to the skew in distribution for RT when aggregated at the participant level. Additionally, all of these trials were in the "incongruous" condition where the character possesses a radical that is related to the reference category, but where the overall meaning of the character is not related to the meaning of that reference category. These participants aren't excluded individually, but dealt with based on the cutoff for RT values.
 
 The 3SD above the mean cutoff for RT is sensible for all trials, and allows us to remove trials across all four conditions approximately evenly, despite the outliers when looking at specific participants with skewed means. 3SD seems to be a reasonable and unbiased cutoff. Likewise we will remove the ```r nrow(filter(d, rt < low_cutoff_rt))``` observations that exhibited really quick RTs too.
 
@@ -446,12 +447,12 @@ d = d %>%
 ## Accuracy
 If we apply the cutoffs outlined above, the following are descriptive accounts of accuracy and RT. Error bars are plotted as standard error of the mean. Below you see mean accuracy across the four conditions, with points as participants.
 
-Remember that the semantic and unrelated conditions are most relevant for final analyses (these are conditions in which we expect a "no" response). In the "overall" condition the participant should be answering that the target is in fact related to the reference category (ie, "knife" is a member of the set of objects that you'd find "in the kitchen"). So, incorrect trials are ones where the participant is responding "no" when the answer should be "yes". Conversely, in the "semantic" and "unrelated" conditions, the answer is always "no"; and incorrect response tells us that the participant indicated that the target is a member of the category (but it in fact is not). The fourth "radical" condition where only the radical was included as a target was included so there would be approximately even numbers of "yes" and "no" responses given that such characters, like those in the "overall" condition should always have a "yes" response.
+Remember that the incongruous and unrelated conditions are most relevant for final analyses (these are conditions in which we expect a "no" response). In the "overall related" condition the participant should be answering that the target is in fact related to the reference category (ie, "knife" is a member of the set of objects that you'd find "in the kitchen"). So, incorrect trials are ones where the participant is responding "no" when the answer should be "yes". Conversely, in the "incongruous" and "unrelated" conditions, the answer is always "no"; and incorrect response tells us that the participant indicated that the target is a member of the category (but it in fact is not). The fourth "radical only" condition where only the radical was included as a target was included so there would be approximately even numbers of "yes" and "no" responses given that such characters, like those in the "overall related" condition should always have a "yes" response.
 
 
 ```{r   warning=FALSE, message=FALSE}
-COLORS = c("overall" = "salmon", "semantic" = "red3", "unrelated" = "goldenrod1", "radical" = "grey23")
-positions = c("radical", "overall", "semantic", "unrelated")
+COLORS = c("overall_related" = "salmon", "incongruous" = "red3", "unrelated" = "goldenrod1", "radical_only" = "grey23")
+positions = c("radical_only", "overall_related", "incongruous", "unrelated")
 # generate data with points (one per participant per condition)
 d %>% 
   filter(outlier == FALSE) %>% 
@@ -467,23 +468,23 @@ d_plot %>%
             se_max = NA) -> d_plot_bars
 
 # the made for function mean_se is having trouble generating the se_min and se_max within piped structures, so compute them directly (even though this code sucks):
-# radical condition
-# overall condition:
+# radical_only condition
+# overall_related condition:
 # se_min:
-d_plot_bars$se_min[which(d_plot_bars$target_type == "radical")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "radical")])[2]
+d_plot_bars$se_min[which(d_plot_bars$target_type == "radical_only")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "radical_only")])[2]
 # se_max:
-d_plot_bars$se_max[which(d_plot_bars$target_type == "radical")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "radical")])[3]
+d_plot_bars$se_max[which(d_plot_bars$target_type == "radical_only")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "radical_only")])[3]
 
-# overall condition:
+# overall_related condition:
 # se_min:
-d_plot_bars$se_min[which(d_plot_bars$target_type == "overall")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "overall")])[2]
+d_plot_bars$se_min[which(d_plot_bars$target_type == "overall_related")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "overall_related")])[2]
 # se_max:
-d_plot_bars$se_max[which(d_plot_bars$target_type == "overall")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "overall")])[3]
-# semantic condition:
+d_plot_bars$se_max[which(d_plot_bars$target_type == "overall_related")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "overall_related")])[3]
+# incongruous condition:
 # se_min:
-d_plot_bars$se_min[which(d_plot_bars$target_type == "semantic")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "semantic")])[2]
+d_plot_bars$se_min[which(d_plot_bars$target_type == "incongruous")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "incongruous")])[2]
 # se_max:
-d_plot_bars$se_max[which(d_plot_bars$target_type == "semantic")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "semantic")])[3]
+d_plot_bars$se_max[which(d_plot_bars$target_type == "incongruous")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "incongruous")])[3]
 # unrelated condition:
 # se_min:
 d_plot_bars$se_min[which(d_plot_bars$target_type == "unrelated")] <- mean_se(d_plot$mean_accuracy[which(d_plot$target_type == "unrelated")])[2]
@@ -508,10 +509,10 @@ ggplot(d_plot_bars, aes(x = target_type, y = mean_accuracy)) +
 
 
 ## RT
-Below are RT data by condition. You certainly see a slowed rate of response in the semantic condition (red), suggestive that there is interference for participants on those trials relative to both other conditions.
+Below are RT data by condition. You certainly see a slowed rate of response in the incongruous condition (red), suggestive that there is interference for participants on those trials relative to both other conditions.
   
 ```{r warning=FALSE, message=FALSE}
-# we will exclude the "radical" condition for the visuals to make it cleaner
+# we will exclude the "radical only" condition for the visuals to make it cleaner
 d %>%
   filter(outlier == FALSE) %>% 
   filter(accuracy == 1) -> d_plot
