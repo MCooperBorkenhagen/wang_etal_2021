@@ -1,0 +1,75 @@
+---
+title: "semantic_ratings"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(tidyverse)
+ratings = readxl::read_xlsx('data/semantic_rating(30).xlsx', sheet = 2, col_names = T) %>% 
+  rename(condition = `trial type`)
+```
+
+
+This brief report covers the basic outcomes of the ratings process conducted by Tianlin and colleagues about the semantic relatedness of the targets and reference categories.
+
+# Descriptives for all conditions
+
+```{r}
+bad_responses = ratings %>% 
+  filter(Rating > 7) %>% 
+  nrow()
+
+
+
+ratings %>% 
+  group_by(condition) %>% 
+  filter(Rating <= 7) %>% 
+  summarise(M = mean(Rating),
+            SD = sd(Rating),
+            max = max(Rating),
+            min = min(Rating)) %>% 
+  ungroup()
+
+```
+
+There were `r bad_responses` bad responses in gathering the ratings, with two ratings of `8` (one each from the overall related and unrelated conditions) and one rating of 13 (from the radical only condition). These responses with skipped in calculating descriptives and in estimating statistical models, and given that so few responses were excluded the results of the ratings process are unlikely to be biased.
+
+## Incongruous versus unrelated condition model
+
+```{r}
+
+model1 = ratings %>% 
+  group_by(condition) %>% 
+  filter(condition == c('unrelated', 'incongruous')) %>% 
+  filter(Rating <= 7) %>% 
+  mutate(condition = case_when(condition == "incongruous" ~ -.5,
+                               condition == "unrelated" ~ .5)) %>% 
+  lme4::lmer(Rating ~ condition + (1|subject) + (1|target_type), data = .)
+
+summary(model1)
+confint(model1)
+
+model1_anova = car::Anova(model1, type=3, test = "F")
+model1_anova
+```
+
+# Model of radical and overall conditions
+```{r}
+
+
+model2 = ratings %>% 
+  group_by(condition) %>% 
+  filter(condition == c('radical_only', 'overall_related')) %>% 
+  filter(Rating <= 7) %>% 
+  mutate(condition = as.factor(case_when(condition == "radical_only" ~ -.5,
+                               condition == "overall_related" ~ .5))) %>% 
+  lme4::lmer(Rating ~ condition + (1|subject) + (1|target_type), data = .)
+
+summary(model2)
+confint(model2)
+
+model2_anova = car::Anova(model2, type=3, test = "F")
+model2_anova
+
+```

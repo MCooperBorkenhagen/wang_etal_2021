@@ -9,7 +9,8 @@ output:
 
 ```{r setup, include = FALSE, warning=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
-source('./scripts/load.R')
+#source('./scripts/load.R')
+source('scripts/load2.R') # for cloned repo
 source('./scripts/utilities.R')
 source('scripts/logits.R') 
 require(tidyverse)
@@ -254,8 +255,8 @@ d %>%
   ggplot(aes(mean_accuracy, 
              reorder(target_id, desc(mean_accuracy)), 
              fill = below_cutoff)) +
-    geom_label(aes(label = target_id), 
-              size = 2, 
+    geom_label(aes(label = target_id),
+              size = 2, vjust = 'inward',
               position = position_jitter(width=.02, height=.02)) +
     geom_rect(xmin = discontinuity_lower_bound, 
               xmax = discontinuity_upper_bound, ymin = 0, ymax = Inf, 
@@ -264,7 +265,7 @@ d %>%
     labs(x = "Mean accuracy", 
          title = "Mean accuracy by target", 
          subtitle = "Points = target id, blue = outliers",
-         fill = "Cutoff < .63") +
+         fill = "Outlier: TRUE/FALSE") +
     theme(plot.title = element_text(hjust = .5, size = 17),
           plot.subtitle = element_text(hjust = .5, size = 15),
           axis.title.y = element_blank(), 
@@ -398,7 +399,8 @@ d %>%
   filter(rt < 500) %>% 
   ggplot(aes(rt)) +
   geom_histogram(binwidth = 2, color = 'black', fill = 'pink') +
-  geom_vline(xintercept = 300, color = 'red')
+  geom_vline(xintercept = 300, color = 'red') +
+  labs(x = 'RT (msec)', y = 'Count')
 
 ```
 
