@@ -73,3 +73,25 @@ model2_anova = car::Anova(model2, type=3, test = "F")
 model2_anova
 
 ```
+
+
+# raw data for two conditions of interest
+
+```{r}
+COLORS = c('Incongruous' = 'firebrick', 'Unrelated' = 'goldenrod')
+
+
+ratings %>% 
+  filter(condition %in% c('incongruous', 'unrelated')) %>% 
+  mutate(condition = case_when(condition == 'incongruous' ~ 'Incongruous',
+                                condition == 'unrelated' ~ 'Unrelated')) %>% 
+  ggplot(aes(condition, Rating, fill = condition)) +
+  geom_bar(stat = 'summary') +
+  geom_jitter(size = 1, width = .02) +
+  scale_fill_manual(values = COLORS) +
+  labs(x = 'Condition') +
+  theme_classic() +
+  theme(legend.position = 'none')
+  
+
+```

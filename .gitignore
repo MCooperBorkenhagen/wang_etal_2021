@@ -4,3 +4,6 @@ scripts/clean.R
 *.Rproj
 
 .Rproj.user
+*.png
+*.Rhistory
+
